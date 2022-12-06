@@ -1,0 +1,11 @@
+- [x] Select a flag parser: 
+    - "github.com/urfave/cli/v2"
+- [x] Decide on the flags:
+    - promAddr
+    - metrics
+    - ldapAddr
+    - ldapUser
+    - configFile
+- [x] Implement the flags.
+- [ ] Add baseDNs that their metrics are going to be scraped
+
