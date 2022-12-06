@@ -101,9 +101,9 @@ type Scraper struct {
 	LdapListenAddr          string
 	LdapsListenAddr         string
 	AdministrationConnector string
-	LdapPort                string
-	LdapsPort               string
-	AdministrationPort      string
+	LdapPort                int
+	LdapsPort               int
+	AdministrationPort      int
 }
 
 type query struct {
@@ -132,37 +132,37 @@ func buildQueries(s *Scraper) {
 		metric:  backendGauge,
 		setData: setValue,
 	})
-	builtCn := fmt.Sprintf("Administration Connector %s port %s", s.AdministrationConnector, s.AdministrationPort)
+	builtCn := fmt.Sprintf("Administration Connector %s port %d", s.AdministrationConnector, s.AdministrationPort)
 	queries = append(queries, &query{
 		baseDN:  getBaseDN(builtCn),
 		metric:  administrationConnectorGauge,
 		setData: setValue,
 	})
-	builtCn = fmt.Sprintf("LDAP Connection Handler %s port %s", s.LdapListenAddr, s.LdapPort)
+	builtCn = fmt.Sprintf("LDAP Connection Handler %s port %d", s.LdapListenAddr, s.LdapPort)
 	queries = append(queries, &query{
 		baseDN:  getBaseDN(builtCn),
 		metric:  ldapGauge,
 		setData: setValue,
 	})
-	builtCn = fmt.Sprintf("LDAPS Connection Handler %s port %s", s.LdapsListenAddr, s.LdapsPort)
+	builtCn = fmt.Sprintf("LDAPS Connection Handler %s port %d", s.LdapsListenAddr, s.LdapsPort)
 	queries = append(queries, &query{
 		baseDN:  getBaseDN(builtCn),
 		metric:  ldapsGauge,
 		setData: setValue,
 	})
-	builtCn = fmt.Sprintf("Administration Connector %s port %s Statistics", s.AdministrationConnector, s.AdministrationPort)
+	builtCn = fmt.Sprintf("Administration Connector %s port %d Statistics", s.AdministrationConnector, s.AdministrationPort)
 	queries = append(queries, &query{
 		baseDN:  getBaseDN(builtCn),
 		metric:  administrationStatisticsGauge,
 		setData: setValue,
 	})
-	builtCn = fmt.Sprintf("LDAP Connection Handler %s port %s Statistics", s.LdapListenAddr, s.LdapPort)
+	builtCn = fmt.Sprintf("LDAP Connection Handler %s port %d Statistics", s.LdapListenAddr, s.LdapPort)
 	queries = append(queries, &query{
 		baseDN:  getBaseDN(builtCn),
 		metric:  ldapHandlerGauge,
 		setData: setValue,
 	})
-	builtCn = fmt.Sprintf("LDAPS Connection Handler %s port %s Statistics", s.LdapsListenAddr, s.LdapsPort)
+	builtCn = fmt.Sprintf("LDAPS Connection Handler %s port %d Statistics", s.LdapsListenAddr, s.LdapsPort)
 	queries = append(queries, &query{
 		baseDN:  getBaseDN(builtCn),
 		metric:  ldapsHandlerGauge,
@@ -201,13 +201,13 @@ func (s *Scraper) Start(ctx context.Context) {
 
 	address := fmt.Sprintf("tcp://%s", s.Addr)
 	s.log.WithField("addr", address).Info("starting monitor loop")
-	ticker := time.NewTicker(s.Tick)
-	defer ticker.Stop()
 	s.Conn, err = ldap.Dial("tcp", s.Addr)
 	if err != nil {
 		s.log.WithError(err).Error("dial failed")
 		return
 	}
+	ticker := time.NewTicker(s.Tick)
+	defer ticker.Stop()
 	defer s.Conn.Close()
 	for {
 		select {
