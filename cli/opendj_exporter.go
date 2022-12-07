@@ -2,16 +2,18 @@ package main
 
 import (
 	"context"
-	exporter "github.com/halper/opendj_exporter"
-	log "github.com/sirupsen/logrus"
-	"github.com/urfave/cli/v2"
-	"github.com/urfave/cli/v2/altsrc"
-	"golang.org/x/sync/errgroup"
 	"os"
 	"os/signal"
 	"sort"
 	"syscall"
 	"time"
+
+	log "github.com/sirupsen/logrus"
+	"github.com/urfave/cli/v2"
+	"github.com/urfave/cli/v2/altsrc"
+	"golang.org/x/sync/errgroup"
+
+	exporter "github.com/halper/opendj_exporter"
 )
 
 const (
@@ -28,6 +30,7 @@ const (
 	ldapsListenAddr = "ldapsListenAddr"
 	adminPort       = "adminPort"
 	adminListenAddr = "adminListenAddr"
+	jsonLog         = "jsonLog"
 )
 
 func main() {
@@ -108,6 +111,12 @@ func main() {
 			Usage:   "OpenDJ bind password (optional)",
 			EnvVars: []string{"LDAP_PASS"},
 		}),
+		altsrc.NewBoolFlag(&cli.BoolFlag{
+			Name:    jsonLog,
+			Value:   false,
+			Usage:   "Output logs in JSON format",
+			EnvVars: []string{"JSON_LOG"},
+		}),
 		&cli.StringFlag{
 			Name:    configFile,
 			Aliases: []string{"c"},
@@ -125,10 +134,10 @@ func main() {
 		Action:          runMain,
 	}
 	sort.Sort(cli.FlagsByName(app.Flags))
+	log.SetFormatter(&log.JSONFormatter{})
 	if err := app.Run(os.Args); err != nil {
 		log.WithError(err).Fatal("service failed")
 	}
-	log.Info("service stopped")
 }
 
 func optionalYamlSourceFunc(flagFileName string) func(context *cli.Context) (altsrc.InputSourceContext, error) {
@@ -136,12 +145,19 @@ func optionalYamlSourceFunc(flagFileName string) func(context *cli.Context) (alt
 		filePath := c.String(flagFileName)
 		if _, err := os.Stat(filePath); err == nil {
 			return altsrc.NewYamlSourceFromFile(filePath)
+		} else if err != nil && filePath != "" {
+			log.WithError(err).Warn("can't access the config file")
 		}
 		return &altsrc.MapInputSource{}, nil
 	}
 }
 
 func runMain(c *cli.Context) error {
+	if c.Bool(jsonLog) {
+		log.SetFormatter(&log.JSONFormatter{})
+	} else {
+		log.SetFormatter(&log.TextFormatter{})
+	}
 	server := exporter.NewMetricsServer(
 		c.String(promAddr),
 		c.String(metrics),
@@ -162,10 +178,10 @@ func runMain(c *cli.Context) error {
 
 	ctx, cancel := context.WithCancel(context.Background())
 	var group errgroup.Group
-  group.Go(func() error {
-    defer cancel()
-    return server.Start()
-  })
+	group.Go(func() error {
+		defer cancel()
+		return server.Start()
+	})
 	group.Go(func() error {
 		defer cancel()
 		scraper.Start(ctx)
@@ -174,7 +190,7 @@ func runMain(c *cli.Context) error {
 	group.Go(func() error {
 		defer func() {
 			cancel()
-      server.Stop()
+			server.Stop()
 		}()
 		signalChan := make(chan os.Signal, 1)
 		signal.Notify(signalChan, syscall.SIGINT, syscall.SIGTERM)

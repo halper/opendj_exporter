@@ -3,11 +3,12 @@ package opendj_exporter
 import (
 	"context"
 	"fmt"
+	"strconv"
+	"time"
+
 	ldap "github.com/go-ldap/ldap/v3"
 	"github.com/prometheus/client_golang/prometheus"
 	log "github.com/sirupsen/logrus"
-	"strconv"
-	"time"
 )
 
 const (
