@@ -46,4 +46,4 @@ cross-compile:
 	OUTFILE=opendj_exporter-linux-nocgo CGO_ENABLED=0 GOOS=linux GOARCH=amd64 $(MAKE) compile
 	OUTFILE=opendj_exporter-osx-amd64 GOOS=darwin GOARCH=amd64 $(MAKE) compile
 	OUTFILE=opendj_exporter-osx-arm64 GOOS=darwin GOARCH=arm64 $(MAKE) compile
-	(cd target && find . -name '*.gz' -exec sha256sum {} \;) > target/verify.sha256
+	(cd target && find . -name '*.gz' | xargs shasum -a 256) > target/verify.sha256
